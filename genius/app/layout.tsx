@@ -1,5 +1,6 @@
 import { AuthProvider } from '@/components/AuthProvider'
 import { Navbar } from '@/components/Navbar'
+import { Toaster } from "@/components/ui/toaster"
 import './globals.css'
 import { Inter } from 'next/font/google'
 
@@ -23,6 +24,7 @@ export default function RootLayout({
           <main className="container mx-auto mt-4">
             {children}
           </main>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

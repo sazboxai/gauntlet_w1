@@ -22,7 +22,7 @@ interface DirectMessageChatProps {
 
 export function DirectMessageChat({ recipientId }: DirectMessageChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('')
+  const [newMessage, setNewMessage] =useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [recipient, setRecipient] = useState<{ username: string; status: string; last_seen: string } | null>(null)
   const { user } = useAuth()
@@ -57,7 +57,7 @@ export function DirectMessageChat({ recipientId }: DirectMessageChatProps) {
       if (error) {
         console.error('Error fetching messages:', error)
       } else {
-        setMessages(data.reverse())
+        setMessages(data || [])
       }
     }
   }
@@ -74,7 +74,6 @@ export function DirectMessageChat({ recipientId }: DirectMessageChatProps) {
         console.error('Error sending message:', error)
       } else {
         setNewMessage('')
-        // Fetch messages again to ensure we have the latest data
         fetchMessages()
       }
     }

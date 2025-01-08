@@ -1,20 +1,34 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
+import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/use-toast"
 
 export function Navbar() {
   const { user, signOut } = useAuth()
+  const router = useRouter()
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      // Optionally, you can add a redirect here
-      // window.location.href = '/';
+      if (!user) return
+      
+      await signOut()
+      router.push('/')
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      })
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error signing out:', error)
+      toast({
+        title: "Error signing out",
+        description: "There was a problem signing out. Please try again.",
+        variant: "destructive",
+      })
     }
-  };
+  }
 
   return (
     <nav className="bg-gray-800 text-white p-4">
@@ -24,12 +38,18 @@ export function Navbar() {
         </Link>
         <div>
           {user ? (
-            <>
-              <span className="mr-4">Welcome, {user.email}</span>
-              <button onClick={handleSignOut} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+            <div className="flex items-center gap-4">
+              <span className="text-sm">
+                {user.user_metadata?.username || user.email}
+              </span>
+              <Button 
+                onClick={handleSignOut} 
+                variant="destructive"
+                size="sm"
+              >
                 Sign Out
-              </button>
-            </>
+              </Button>
+            </div>
           ) : (
             <Link href="/" className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded">
               Login / Sign Up

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
@@ -13,6 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     // Check current auth status
@@ -25,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event) // Debug log
+      console.log('Auth state changed:', event)
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
@@ -39,43 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  useEffect(() => {
-    if (!user) return
-
-    // Update user status based on visibility
-    const handleVisibilityChange = () => {
-      const status = document.hidden ? 'offline' : 'online'
-      updateUserStatus(user.id, status)
-    }
-
-    // Update user status based on window focus
-    const handleFocus = () => updateUserStatus(user.id, 'online')
-    const handleBlur = () => updateUserStatus(user.id, 'offline')
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('blur', handleBlur)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('blur', handleBlur)
-    }
-  }, [user])
-
   const signOut = async () => {
     if (user) {
       try {
-        await updateUserStatus(user.id, 'offline');
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        await updateUserStatus(user.id, 'offline')
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+        setUser(null)
+        router.push('/')
       } catch (error) {
-        console.error('Error signing out:', error);
-        throw error; // Rethrow the error so it can be caught in the Navbar component
+        console.error('Error signing out:', error)
+        throw error
       }
     }
-    setUser(null);
-  };
+  }
 
   const updateUserStatus = async (userId: string, status: 'online' | 'offline') => {
     try {
@@ -85,13 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status, 
           last_seen: new Date().toISOString() 
         })
-        .eq('id', userId);
+        .eq('id', userId)
 
-      if (error) throw error;
+      if (error) throw error
     } catch (error) {
-      console.error('Error updating user status:', error);
+      console.error('Error updating user status:', error)
     }
-  };
+  }
 
   return (
     <AuthContext.Provider value={{ user, signOut }}>

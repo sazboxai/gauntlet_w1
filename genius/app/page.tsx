@@ -6,21 +6,40 @@ import { Signup } from '@/components/Signup'
 import { useAuth } from '@/components/AuthProvider'
 import { UsersList } from '@/components/UsersList'
 import { DirectMessageChat } from '@/components/DirectMessageChat'
+import { ChannelList } from '@/components/ChannelList'
+import ChannelChat from '@/components/ChannelChat'
+
+type ChatView = {
+  type: 'direct' | 'channel'
+  id: string
+} | null
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedChat, setSelectedChat] = useState<ChatView>(null)
   const { user } = useAuth()
 
   if (user) {
     return (
       <main className="flex h-screen">
-        <UsersList onUserSelect={setSelectedUserId} />
-        {selectedUserId ? (
-          <DirectMessageChat recipientId={selectedUserId} />
+        <div className="flex">
+          <ChannelList
+            onChannelSelect={(channelId) => setSelectedChat({ type: 'channel', id: channelId })}
+            selectedChannelId={selectedChat?.type === 'channel' ? selectedChat.id : undefined}
+          />
+          <UsersList
+            onUserSelect={(userId) => setSelectedChat({ type: 'direct', id: userId })}
+          />
+        </div>
+        {selectedChat ? (
+          selectedChat.type === 'direct' ? (
+            <DirectMessageChat recipientId={selectedChat.id} />
+          ) : (
+            <ChannelChat channelId={selectedChat.id} />
+          )
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-100">
-            <p className="text-xl text-gray-500">Select a user to start chatting</p>
+            <p className="text-xl text-gray-500">Select a channel or user to start chatting</p>
           </div>
         )}
       </main>

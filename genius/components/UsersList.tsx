@@ -5,6 +5,7 @@ import { useAuth } from './AuthProvider'
 import { getUsers } from '@/lib/supabase'
 import { User, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from "@/components/ui/use-toast"
 
 interface UserItemProps {
   user: {
@@ -50,30 +51,42 @@ export function UsersList({ onUserSelect }: { onUserSelect: (userId: string) => 
   const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
-  useEffect(() => {
-    fetchUsers()
-  }, [page])
-
-  async function fetchUsers() {
+  const fetchUsers = async () => {
     try {
       setIsLoading(true)
       setError(null)
+      
       const { data, error, count } = await getUsers(page)
       
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
-      setUsers(prevUsers => {
-        const newUsers = data.filter((u) => u.id !== user?.id)
-        return page === 1 ? newUsers : [...prevUsers, ...newUsers]
-      })
-      setHasMore(count > page * 20)
+      if (Array.isArray(data)) {
+        setUsers(prevUsers => {
+          const newUsers = data.filter(u => u.id !== user?.id)
+          return page === 1 ? newUsers : [...prevUsers, ...newUsers]
+        })
+        setHasMore(count > page * 20)
+      } else {
+        throw new Error('Invalid data format received')
+      }
     } catch (err) {
-      setError(err.message)
-      console.error('Error fetching users:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load users'
+      setError(errorMessage)
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [page])
 
   useEffect(() => {
     const userPresenceSubscription = supabase
