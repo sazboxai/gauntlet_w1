@@ -12,10 +12,7 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     try {
-      if (!user) return
-      
       await signOut()
-      router.push('/')
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",

@@ -8,7 +8,7 @@ import { toast } from "@/components/ui/use-toast"
 import { useAuth } from './AuthProvider'
 
 interface MessageComposerProps {
-  onSendMessage: (content: string, fileIds: string[]) => void
+  onSendMessage: (content: string, fileIds: string[]) => Promise<any>
   channelId: string
 }
 
@@ -23,10 +23,19 @@ export function MessageComposer({ onSendMessage, channelId }: MessageComposerPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (message.trim() || uploadedFiles.length > 0) {
-      await onSendMessage(message.trim(), uploadedFiles)
-      setMessage('')
-      setUploadedFiles([])
-      setShowUploadZone(false)
+      try {
+        await onSendMessage(message.trim(), uploadedFiles)
+        setMessage('')
+        setUploadedFiles([])
+        setShowUploadZone(false)
+      } catch (error) {
+        console.error('Error sending message:', error)
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -36,7 +45,7 @@ export function MessageComposer({ onSendMessage, channelId }: MessageComposerPro
     setIsGeneratingAI(true)
     try {
       // First, send the user's message
-      await onSendMessage(message.trim(), uploadedFiles)
+      const userMessage = await onSendMessage(message.trim(), uploadedFiles)
 
       const response = await fetch('/api/ai-response', {
         method: 'POST',
