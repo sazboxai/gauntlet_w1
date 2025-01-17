@@ -76,7 +76,11 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
     try {
       const { data, error } = await sendChannelMessage(channelId, content, fileIds)
       if (error) throw error
-      // The new message will be added via the real-time subscription
+      
+      // Immediately add the new message to the state
+      setMessages((prevMessages) => [...prevMessages, data])
+      
+      return data
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
@@ -84,6 +88,7 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       })
+      throw error
     }
   }
 
