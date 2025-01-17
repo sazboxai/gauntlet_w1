@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 import { getChannelMessages, sendChannelMessage, supabase } from '@/lib/supabase'
 import { MessageItem } from './MessageItem'
@@ -7,6 +7,7 @@ import { ThreadView } from './ThreadView'
 import { toast } from "@/components/ui/use-toast"
 import { SearchBar } from './SearchBar'
 import { FileSearchModal } from './FileSearchModal'
+import { RagUpdateButton } from './RagUpdateButton'
 
 interface ChannelChatProps {
   channelId: string
@@ -19,6 +20,7 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
   const { user } = useAuth()
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchMessages()
@@ -41,6 +43,14 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
       supabase.removeChannel(channel)
     }
   }, [channelId])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   const fetchMessages = async () => {
     setIsLoading(true)
@@ -66,7 +76,7 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
     try {
       const { data, error } = await sendChannelMessage(channelId, content, fileIds)
       if (error) throw error
-      setMessages((prevMessages) => [...prevMessages, data])
+      // The new message will be added via the real-time subscription
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
@@ -83,26 +93,26 @@ export default function ChannelChat({ channelId }: ChannelChatProps) {
   }
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 flex flex-col">
-        <div className="bg-white border-b p-4">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
-            <p>Loading messages...</p>
-          ) : (
-            messages.map((message) => (
-              <MessageItem 
-                key={message.id} 
-                message={message} 
-                onThreadClick={() => setActiveThreadId(message.id)}
-              />
-            ))
-          )}
-        </div>
-        <MessageComposer onSendMessage={handleSendMessage} channelId={channelId} />
+    <div className="flex h-full flex-col">
+      <div className="bg-white border-b p-4 flex justify-between items-center">
+        <SearchBar onSearch={handleSearch} />
+        <RagUpdateButton channelId={channelId} />
       </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        {isLoading ? (
+          <p>Loading messages...</p>
+        ) : (
+          messages.map((message) => (
+            <MessageItem 
+              key={message.id} 
+              message={message} 
+              onThreadClick={() => setActiveThreadId(message.id)}
+            />
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      <MessageComposer onSendMessage={handleSendMessage} channelId={channelId} />
       {activeThreadId && (
         <div className="w-96 border-l">
           <ThreadView 
