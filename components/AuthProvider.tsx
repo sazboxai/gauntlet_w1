@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { User } from '@supabase/supabase-js'
+import { User, AuthError } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
@@ -55,17 +55,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
-    if (user) {
-      try {
+    try {
+      if (user) {
         await updateUserStatus(user.id, 'offline')
-        const { error } = await supabase.auth.signOut()
-        if (error) throw error
-        setUser(null)
-        router.push('/')
-      } catch (error) {
-        console.error('Error signing out:', error)
-        throw error
       }
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        if (error instanceof AuthError && error.name === 'AuthSessionMissingError') {
+          // If there's no session, just clear the user state
+          console.log('No active session found, clearing user state')
+        } else {
+          throw error
+        }
+      }
+    } catch (error) {
+      console.error('Error during sign out:', error)
+    } finally {
+      // Always clear the user state and redirect
+      setUser(null)
+      router.push('/')
     }
   }
 

@@ -180,20 +180,42 @@ export const createChannel = async (name: string, description: string) => {
   }
 }
 
-export const sendChannelMessage = async (channelId: string, content: string, fileIds: string[] = []) => {
+export const sendChannelMessage = async (
+  channelId: string, 
+  content: string, 
+  fileIds: string[] = [],
+  senderUsername: string = ''
+) => {
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No user logged in')
+    if (!user && !senderUsername) throw new Error('No user logged in')
 
-    // Fetch the user's data from the users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', user.id)
-      .single()
+    // For AI messages, we'll use a special user account
+    let senderId = user?.id
+    if (senderUsername === 'ai_agent') {
+      const { data: aiUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', 'ai_agent')
+        .single()
+      
+      if (aiUser) {
+        senderId = aiUser.id
+      } else {
+        // Create the AI agent user if it doesn't exist
+        const { data: newAiUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            username: 'ai_agent',
+            status: 'online'
+          })
+          .select()
+          .single()
 
-    if (userError) throw userError
-    if (!userData) throw new Error('User not found in the users table')
+        if (createError) throw createError
+        senderId = newAiUser.id
+      }
+    }
 
     if (!content.trim() && fileIds.length > 0) {
       content = "File uploaded"
@@ -203,7 +225,7 @@ export const sendChannelMessage = async (channelId: string, content: string, fil
       .from('channel_messages')
       .insert({
         channel_id: channelId,
-        sender_id: userData.id,
+        sender_id: senderId,
         content,
         has_attachments: fileIds.length > 0
       })
@@ -807,6 +829,23 @@ export const getDirectMessageThreadReplies = async (parentMessageId: string) => 
     return { data, error: null }
   } catch (error) {
     console.error('Error fetching direct message thread replies:', error)
+    return { data: null, error }
+  }
+}
+
+export const getRagStatus = async (channelId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('rag_update')
+      .select('updated_at')
+      .eq('index_id', channelId)
+      .eq('type', 'channel')
+      .single()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error fetching RAG status:', error)
     return { data: null, error }
   }
 }

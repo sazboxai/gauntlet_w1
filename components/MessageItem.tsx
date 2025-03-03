@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { MessageSquare, Reply } from 'lucide-react'
+import { MessageSquare, Reply, Bot } from 'lucide-react'
 import { FileMessage } from './FileMessage'
 import { useAuth } from './AuthProvider'
 import { ThreadView } from './ThreadView'
@@ -29,6 +29,7 @@ interface MessageItemProps {
     reply_count?: number
     last_reply_at?: string
     thread_participant_count?: number
+    is_ai?: boolean
   }
 }
 
@@ -81,16 +82,28 @@ export function MessageItem({ message }: MessageItemProps) {
     setShowThread(!showThread)
   }
 
+  const isAIMessage = message.sender?.username === 'ai_agent'
+
   return (
     <div className="flex flex-col mb-4">
-      <div className="flex items-start space-x-3">
+      <div className={`flex items-start space-x-3 p-3 rounded-lg ${
+        isAIMessage ? 'bg-blue-50' : ''
+      }`}>
         <Avatar className="w-8 h-8">
-          <AvatarImage src={message.sender?.avatar_url} alt={message.sender?.username || 'Unknown User'} />
-          <AvatarFallback>{message.sender?.username ? message.sender.username.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+          {isAIMessage ? (
+            <Bot className="w-6 h-6 text-blue-500" />
+          ) : (
+            <>
+              <AvatarImage src={message.sender?.avatar_url} alt={message.sender?.username || 'Unknown User'} />
+              <AvatarFallback>{message.sender?.username ? message.sender.username.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+            </>
+          )}
         </Avatar>
         <div className="flex-1">
           <div className="flex items-baseline space-x-2">
-            <span className="font-semibold">{message.sender?.username || 'Unknown User'}</span>
+            <span className={`font-semibold ${isAIMessage ? 'text-blue-600' : ''}`}>
+              {isAIMessage ? 'AI Assistant' : message.sender?.username || 'Unknown User'}
+            </span>
             <span className="text-xs text-muted-foreground">
               {new Date(message.created_at).toLocaleString()}
             </span>
@@ -102,7 +115,7 @@ export function MessageItem({ message }: MessageItemProps) {
                 <FileMessage
                   key={file.id}
                   file={file}
-                  isOwner={message.sender.id === user?.id}
+                  isOwner={message.sender?.id === user?.id}
                   onDelete={() => {}} // Implement file deletion if needed
                 />
               ))}

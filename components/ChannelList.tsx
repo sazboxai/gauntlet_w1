@@ -221,5 +221,3 @@ function CreateChannelForm({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-export default ChannelList
-
